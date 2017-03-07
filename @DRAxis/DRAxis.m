@@ -1,8 +1,8 @@
 classdef DRAxis
 % DRAxis - DataRecorder Axis Store
 	properties ( GetAccess = 'public', SetAccess = 'private' )
-		% Related to state
-		AxState = 'Wait update';
+		% Related to state ( 0: Wait update, 1: Up to date )
+		nState = 0;
 		% Related to plot
 		Time = [];
 		DisplayRatio = 1.0;
@@ -21,11 +21,11 @@ classdef DRAxis
 		nAxCount = 0;
 		nAxType = 0;
 		CrdShift = 0.0;
-		% Unit
-		CurrUnitMode = 'BLU';
+		% Unit Module ( CMD_Raw, FBK_Raw )
+		mUnit = CUnitManager( 2, 'BLU', 70, 2 );
 		% Math Module
-		mMath = CZMath;
-		mCurv = CZCurve;
+		mMath = CMath;
+		mCurv = CCurve;
 	end
 	methods
 		function Obj = DRAxis( varargin )
@@ -76,7 +76,7 @@ classdef DRAxis
 		% 	Obj = Obj.AxPutRaw( AxCMD, AxFBK, nAxCode )
 
 			% Initialize
-            Obj = varargin{ 1 };
+			Obj = varargin{ 1 };
 			if ischar( varargin{ 3 } )
 				sMethod = varargin{ 3 };
 			else
@@ -133,21 +133,33 @@ classdef DRAxis
 		function Obj = AxUpdate( Obj )
 		% AxUpdate - Update Axis data and set state ready
 		%
-		% 	Obj = AxUpdate( Obj )
+		% 	Obj = Obj.AxUpdate()
 
 			disp( ['Update Axis', num2str( Obj.nAxCode ) ] );
+			% Do unit conversion
+			switch Obj.nAxType
+			case 0
+				AxType = 'Len';
+			case 1
+				AxType = 'Rot';
+			end
+
+			[ Obj.mUnit, Obj.CMD_Raw ] = Obj.mUnit.DoIDUnitConv( 1, Obj.CMD_Raw, AxType );
+			[ Obj.mUnit, Obj.FBK_Raw ] = Obj.mUnit.DoIDUnitConv( 2, Obj.FBK_Raw, AxType );
+			Obj.mUnit = Obj.mUnit.IsUnitSync();
+
 			if ~isempty( Obj.CMD_Raw )
-				Obj.CMD_Pos = Obj.CMD_Raw * 1e-3 - Obj.CrdShift;
+				Obj.CMD_Pos = Obj.CMD_Raw - Obj.CrdShift;
 			end
 			if ~isempty( Obj.FBK_Raw )
-				Obj.FBK_Pos = Obj.FBK_Raw * 1e-3 - Obj.CrdShift;
+				Obj.FBK_Pos = Obj.FBK_Raw - Obj.CrdShift;
 			end
 			% Modified data according to axis type
-			switch Obj.nAxType
-			case 1 % Rotation
+			switch AxType
+			case 'Rot'
 					Obj.CMD_Pos = Obj.mMath.ModToAbsDeg( Obj.CMD_Pos );
 					Obj.FBK_Pos = Obj.mMath.ModToAbsDeg( Obj.FBK_Pos );
-			otherwise % Linear
+			otherwise
 			end
 
 			% Calculate Vel and Acc
@@ -171,6 +183,27 @@ classdef DRAxis
 			Obj.Time = ( 0 : Timebase : ( Obj.nAxCount - 1 ) * Timebase ) + Timeshift;
 			Obj.Time = Obj.Time';
 		end % End of AxSetTime
+
+		function Obj = AxSetUnit( Obj, Type, nDim, nPrec )
+		% AxSetUnit - Set axis unit mode
+		%
+		% 	Obj = Obj.AxSetUnit()
+			Obj.mUnit = Obj.mUnit.SetUnitMode( Type, nDim, nPrec );
+		end
+
+		function Mode = AxGetUnit( Obj )
+		% AxGetUnit - Get axis unit mode
+		%
+		% 	Mode = Obj.AxGetUnit()
+			Mode = Obj.mUnit.CurrMode;
+		end
+
+		function Obj = AxSetDefaultUnit( Obj, Type, nDim, nPrec )
+		% AxSetDefaultUnit
+		%
+		% Obj = Obj.AxSetDefaultUnit( Type, nDim, nPrec )
+			Obj.mUnit = Obj.mUnit.SetDefaultUnitMode( Type, nDim, nPrec );
+		end % End of AxSetDefaultUnit
 
 		function Obj = AxGetVel( Obj )
 		% AxGetVel - Get axis velocity

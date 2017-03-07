@@ -5,29 +5,40 @@ classdef DREnv
 		Name = '';
 		% Related to time
 		Timebase = 3000 * 1.0e-6;
-		Timeline = [];
 		TMovIni = -1;
 		TMovEnd = -1;
-		% Related to unit conversion
-		CurrUnitMode = 'BLU';
-		NextUnitMode = 'IU';
-		ToIU = 1 / 1000;
 		% Related to intrinsic axis store
 		Ax = DRAxis.empty;
 		nAxDetectMov = 1;
 		nAxMap = [];
 		nAxNum = 0;
+		% Related to unit
+		UnitMode = struct( 'Type', 'BLU', 'nDim', 70, 'nPrec', 2 );
 		% Related to explicit axis store
-
 	end
 	methods
 		function Obj = DREnv( varargin )
 		% DREnv - Constructor of object DREnv
 		%
-		% 	Obj = DREnv(  )
-            if nargin > 0
-                Obj.Timebase = varargin{ 1 } * 1.0e-6;
-            end
+		% 	Obj = DREnv( Timebase, UnitType, UnitDim, UnitPrec )
+
+			% Initialize
+			narginchk( 0, 4 );
+			if nargin > 0
+				Obj.Timebase = varargin{ 1 } * 1.0e-6;
+				switch nargin
+				case 2
+					Obj.UnitMode.Type = varargin{ 2 };
+				case 3
+					Obj.UnitMode.Type = varargin{ 2 };
+					Obj.UnitMode.nDim = varargin{ 3 };
+				case 4
+					Obj.UnitMode.Type = varargin{ 2 };
+					Obj.UnitMode.nDim = varargin{ 3 };
+					Obj.UnitMode.nPrec = varargin{ 4 };
+				otherwise
+				end
+			end
 		end % End of DREnvironment constructor
 
 		function obj = EnvModify( varargin )
@@ -45,12 +56,10 @@ classdef DREnv
 					obj.nAxDetectMov = varargin{ i * 2 + 1 };
 				case 'Timebase'
 					obj.Timebase = varargin{ i * 2 + 1 } * 1.0e-6;
-				case 'Timeline'
-					disp( 'Please use function EnvTimeline() instead' );
 				case 'CurrUnitMode'
-					disp( 'Please use function EnvSetUnit() instead' );
+					disp( 'Please use function EnvSetAxUnit() instead' );
 				case 'NextUnitMode'
-					disp( 'Please use function EnvSetUnit() instead' );
+					disp( 'Please use function EnvSetAxUnit() instead' );
 				otherwise
 					disp( 'No match field, or direct set is not allowable' );
 				end
@@ -119,7 +128,7 @@ classdef DREnv
 
 			switch sMethod
 				case 'Both'
-                    nLenOfDataRaw = length( DataRaw( 1, : ) );
+					nLenOfDataRaw = length( DataRaw( 1, : ) );
 					AxCMD = DataRaw( :, 1 : 2 : ( nLenOfDataRaw - 1 ) );
 					AxFBK = DataRaw( :, 2 : 2 : nLenOfDataRaw );
 					% Trim AxCMD
@@ -138,6 +147,7 @@ classdef DREnv
 					end
 					% Put data into DRAxis
 					for i = 1 : Obj.nAxNum
+						disp( [ 'Put Axis', num2str( Obj.nAxMap( i ) ), sMethod ] );
 						Obj.Ax( i ) = DRAxis( AxCMD( :, i ), AxFBK( :, i ), Obj.nAxMap( i ) );
 					end
 
@@ -157,10 +167,12 @@ classdef DREnv
 					end
 					% Put data into DRAxis
 					for i = 1 : Obj.nAxNum
-                        disp( [ 'Put Axis', num2str( Obj.nAxMap( i ) ), sMethod ] );
+						disp( [ 'Put Axis', num2str( Obj.nAxMap( i ) ), sMethod ] );
 						Obj.Ax( i ) = DRAxis( AxCMD( :, i ), sMethod, Obj.nAxMap( i ) );
 					end
 			end
+			% Sync default Unit mode
+			Obj = Obj.EnvSetAxDefaultUnit( Obj.UnitMode.Type, Obj.UnitMode.nDim, Obj.UnitMode.nPrec );
 		end % End of EnvReadFile
 
 		function Obj = ReadDR( Obj )
@@ -212,10 +224,38 @@ classdef DREnv
 			for i = 1 : Obj.nAxNum
 				Obj.Ax( i ) = Obj.Ax( i ).AxModify( 'CrdShift', AxShift( i ) );
 			end
-		end
+		end % End of EnvSetAxShift
+
+		function Obj = EnvSetAxUnit( Obj, Type, nDim, nPrec )
+		% EnvSetAxUnit - Set next axis unit mode
+		%
+		% 	Obj = Obj.EnvSetAxUnit( Type, nDim, nPrec )
+			Obj.UnitMode.Type = Type;
+			Obj.UnitMode.nDim = nDim;
+			Obj.UnitMode.nPrec = nPrec;
+			for i = 1 : Obj.nAxNum
+				Obj.Ax( i ) = Obj.Ax( i ).AxSetUnit( Type, nDim, nPrec );
+			end
+		end % End of EnvSetAxUnit
+
+		function UnitMode = EnvGetAxUnit( Obj, nAx )
+		% EnvGetAxUnit - Get Current axis unit mode
+		%
+		% 	UnitMode = Obj.EnvGetAxUnit()
+
+		end % End of EnvGetAxUnit
+
+		function Obj = EnvSetAxDefaultUnit( Obj, Type, nDim, nPrec )
+		% EnvSetAxDefaultUnit
+		%
+		% 	Obj = Obj.EnvSetAxDefaultUnit( Type, nDim, nPrec )
+			for i = 1 : Obj.nAxNum
+				Obj.Ax( i ) = Obj.Ax( i ).AxSetDefaultUnit( Type, nDim, nPrec );
+			end
+		end % End of EnvSetAxDefaultUnit
 
 		function Obj = EnvSetTime( varargin )
-		% EnvTimeline - Set timebase and update DRAxis.time
+		% EnvSetTime - Set timebase and update DRAxis.time
 		%
 		% 	Obj = Obj.EnvSetTime()
 		% 	Obj = Obj.EnvSetTime( timebase )
@@ -238,20 +278,5 @@ classdef DREnv
 				Obj.Ax( i ) = Obj.Ax( i ).AxUpdate();
 			end
 		end % End of EnvAx
-
-		function Obj = EnvSetUnit( varargin )
-		% EnvSetUnit - Set Unit Conversion Coefficients
-		%
-		% 	Obj = Obj.EnvSetUnit( 'NextUnitMod' )
-			Obj = varargin{ 1 };
-			switch varargin{ 2 }
-			case 'BLU'
-			case 'IU'
-			case 'CNC'
-			otherwise
-				disp( 'No match Unit Mode' );
-			end
-		end % End of EnvSetUnit
-
 	end % End of Methods
 end % End of classdef
