@@ -1,7 +1,6 @@
 classdef NCGenerator
 	properties( GetAccess = 'public', SetAccess = 'private' )
-		ZMath = CZMath.empty();
-		Env = DREnv.empty();
+		ZMath = CZMath();
 	end
 	methods
 		function Obj = NCGenerator(  )
