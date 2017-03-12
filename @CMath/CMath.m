@@ -19,14 +19,13 @@ classdef CMath
 		DegRaw = AbsToModDeg( Obj, DegRaw )
 		% AbsToModDeg - Convert raw deg to modulo 360 degree
 
-		varargout = SortTrimData( Obj, RangeKeep  )
-
-		varargout = SortSyncData( Obj, varargin )
-
-		diffOut = GetMinDegDiff( Obj, deg1, deg2 )
+		Deg_Diff = GetMinDegDiff( Obj, Deg_In1, Deg_In2 )
 
 		vHeight = GetTriHeight( Obj, v1, v2 )
 		% GetTriHeight - Compute height of triangle composed of vector v1, v2
+
+		AngleSpan = GetCornerDeg( Obj, v1, v2 )
+		% GetCornerDeg - Compute corner angle of consecutive vector ( v1 to v2 )
 
 		function [] = MovingAverage( Obj, nQueSize )
 		% MovingAverage -

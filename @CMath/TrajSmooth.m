@@ -14,16 +14,10 @@ function varargout = TrajSmooth( Obj, sMethod, varargin )
 		nAxInput = length( varargin );
 		nAxRequire = 2;
 		nCount = length( varargin{ 1 } );
-		varargout = cell( nAxRequire, 1 );
-		for i = 1 : nAxRequire
-			varargout{ i } = zeros( 2 * nCount - 1, 1 )
+		varargout = cell( 2, 1 );
+		for i = 1 : nCount
 		end
-		Pole =  0 : ( pi / 2 ) : ( ( 2 * nCount - 1 ) * pi / 2 );
-		Odd = abs( cos( Pole ) );
-		Even = abs( sin( Pole ) );
-		for i = 2 : n - 1
 
-		end
 
 	case 'PolyEstimation'
 		% varargin{ 1 }: Index of trim point
@@ -43,7 +37,10 @@ function varargout = TrajSmooth( Obj, sMethod, varargin )
 				nIdxIni( nGroup ) = Idx;
 				nIdxEnd( nGroup ) = Idx;
 			else
-				if ( Idx - nIdxEnd( nGroup ) ) ~= 1
+				% Allowable Index difference is 5 ( what a magic number )
+				% For example, Index 14 18 are considered as same group
+				% Index 14 19 are considered as different group
+				if ( Idx - nIdxEnd( nGroup ) ) > 5
 					nGroup = nGroup + 1;
 					nIdxIni( nGroup ) = Idx;
 				end
@@ -62,9 +59,9 @@ function varargout = TrajSmooth( Obj, sMethod, varargin )
 				varargin{ 4 }( nIdxIni( i ) - varargin{ 2 } : nIdxIni( i ) - 1 ); ...
 				varargin{ 4 }( nIdxEnd( i ) + 1 : nIdxEnd( i ) + varargin{ 2 } ) ];
 			p = polyfit( t, y, 3 );
-			t_Fix = varargin{ 3 }( nIdxIni( i ) : nIdxEnd( i ) ) - t_Ini;
+			t_Fix = varargin{ 3 }( nIdxIni( i ) - 1 : nIdxEnd( i ) + 1 ) - t_Ini;
 			y_Fix = polyval( p, t_Fix );
-			varargin{ 4 }( nIdxIni( i ) : nIdxEnd( i ) ) = y_Fix( : );
+			varargin{ 4 }( nIdxIni( i ) - 1 : nIdxEnd( i ) + 1 ) = y_Fix( : );
 		end
 		varargout = { varargin{ 3 }; varargin{ 4 } };
 

@@ -195,6 +195,12 @@ classdef DREnv
 			narginchk( 3, 5 );
 			fp = fopen( sFileName, 'r' );
 
+			% Read Line-by-line
+			sLine = fgets( fp );
+			while ischar( sLine ) == true
+				 
+			end
+
 			% Create format
 			DataRaw = textscan( fp, sFormat );
 			switch nargin

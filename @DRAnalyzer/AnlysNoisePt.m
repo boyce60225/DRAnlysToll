@@ -6,6 +6,9 @@ function varargout = AnlysNoisePt( Obj, sMethod, varargin )
 % 		'TriHeight': using pt i, i + 1, i + 2,
 % 			construct v1 = pt( i + 1 ) - pt( i ), v2 = pt( i + 2 ) - pt( i )
 % 			to compute height of triangle
+% 		'CornerAngle': using pt i, i + 1, i + 2,
+% 			construct v1 = pt( i + 1 ) - pt( i ), v2 = pt( i + 2 ) - pt( i + 1 )
+% 			to compute angle of corner
 
 	% Initialize, Construct function format
 	nAxInput = length( varargin );
@@ -32,10 +35,31 @@ function varargout = AnlysNoisePt( Obj, sMethod, varargin )
 			varargout = { AnlysValue };
 			disp( 'Finish Noise Pt Analysis' );
 		else
-			disp( 'Not Enough Input' );
+			disp( 'Not enough input axis' );
 		end
-	case 'TrajReverse'
+
+	case 'CornerAngle'
 		% 2D Analysis, noise is determine by trajectory reverse
+		nAxRequire = 2;
+		if nAxInput >= nAxRequire
+			disp( 'Executing Noise Pt Analysis: CornerAngle' );
+			nCount = length( varargin{ 1 } );
+			AnlysValue = ones( nCount, 1 ) .* 180.0;
+			for i = 3 : nCount
+				v1 = [ ...
+					varargin{ 1 }( i - 1 ) - varargin{ 1 }( i - 2 ); ...
+					varargin{ 2 }( i - 1 ) - varargin{ 2 }( i - 2 )];
+				v2 = [ ...
+					varargin{ 1 }( i ) - varargin{ 1 }( i - 1 ); ...
+					varargin{ 2 }( i ) - varargin{ 2 }( i - 1 ) ];
+				AnlysValue( i - 1 ) = norm( Obj.mMath.GetCornerDeg( v1, v2 ) );
+			end
+			varargout = { AnlysValue };
+			disp( 'Finish Noise Pt Analysis' );
+		else
+			disp( 'Not enough input axis' )
+		end
+
 	otherwise
 		disp( 'No matching method' );
 	end
